@@ -90,20 +90,27 @@ def discover(sources):
             if not files:
                 log(f"no dated node files in {repo}")
                 continue
-            latest = files[0]
-            raw = f"{RAW_ROOT}/{repo}/{branch}/{latest}"
-            try:
-                body, _ = http(
-                    urllib.request.Request(raw, headers=dict(UA)), timeout=25
-                )
-                if not body.strip():
-                    log(f"{raw} is empty, skipped")
-                    continue
-            except Exception as e:  # noqa: BLE001
-                log(f"verify {raw} failed: {e}; skipped")
+            # Walk newest -> oldest until we find a non-empty node file:
+            # the single newest dated file is often placeholder-empty while the
+            # upstream generator is mid-update, so fall back to a recent one.
+            picked = None
+            for name in files:
+                raw = f"{RAW_ROOT}/{repo}/{branch}/{name}"
+                try:
+                    body, _ = http(
+                        urllib.request.Request(raw, headers=dict(UA)), timeout=25
+                    )
+                    if body.strip():
+                        picked = raw
+                        log(f"discovered {raw}")
+                        break
+                    log(f"{raw} is empty, trying older file");
+                except Exception as e:  # noqa: BLE001
+                    log(f"verify {raw} failed: {e}; trying older file")
+            if picked is None:
+                log(f"no non-empty node file in {repo}")
                 continue
-            found.append(raw)
-            log(f"discovered {raw}")
+            found.append(picked)
         except Exception as e:  # noqa: BLE001
             log(f"discover {repo} error: {e}")
     return found
