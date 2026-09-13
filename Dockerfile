@@ -47,6 +47,8 @@ RUN cd /src/easy_proxies \
 # ---- Stage 2: runtime -------------------------------------------------------
 FROM python:3.12-slim AS runtime
 
+WORKDIR /app
+
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates tzdata supervisor git \
  && rm -rf /var/lib/apt/lists/* \
