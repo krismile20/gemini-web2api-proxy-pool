@@ -4,3 +4,4 @@
 dist/
 .env
 DEPLOY_NOTES.md
+__pycache__/
