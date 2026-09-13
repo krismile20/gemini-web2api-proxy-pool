@@ -373,12 +373,16 @@ def main():
     log(f"sources={_CFG['_sources']} interval={interval}s refresh={_CFG['_refresh_interval']} reconcile={'on' if _CFG['_baseline_settings'] else 'off'}")
 
     # Run once immediately so a cold start converges before the first interval.
-    cycle()
-
+    next_delay_s = 15  # short retry while the management API is still coming up
     while True:
+        ok = cycle()
+        if not ok:
+            log(f"cycle failed; retrying in {next_delay_s}s")
+            time.sleep(next_delay_s)
+            next_delay_s = min(next_delay_s * 2, 120)
+            continue
+        next_delay_s = 15
         time.sleep(interval)
-        cycle()
-
 
 def cycle():
     mgmt_base = _CFG["_mgmt_base"]
@@ -389,6 +393,9 @@ def cycle():
     baseline_settings = _CFG.get("_baseline_settings", {})
     try:
         token = auth(mgmt_base, password)
+        if not token:
+            log("auth for mgmt API failed (password missing?)")
+            return False
         if baseline_settings:
             reconcile_core(mgmt_base, token, baseline_settings)
         discovered = discover(sources) if sources else []
@@ -402,9 +409,10 @@ def cycle():
             push_subscriptions(mgmt_base, token, combined, refresh_interval)
         else:
             log("no subscriptions to push; skipping")
+        return True
     except Exception as e:  # noqa: BLE001
         log(f"cycle error: {e}")
-
+        return False
 
 if __name__ == "__main__":
     try:
