@@ -39,6 +39,7 @@ gemini-web2api 无 WebUI(纯 API + `/` JSON 状态),无需 WebUI 前缀补丁;ea
 | `POOL_FAILURE_THRESHOLD` | 可选 | 节点连续失败多少次加入黑名单,默认 `3`;调低(如 `1`)让坏节点更快被踢出,提升成功率 |
 | `POOL_MODE` | 可选 | 池调度模式 `random`(默认)/ `sequential` |
 | `POOL_BLACKLIST_DURATION` | 可选 | 节点进黑名单时长,默认 `1h` |
+| `SKIP_CERT_VERIFY` | 可选 | 是否跳过节点 TLS 证书校验,默认 `true`(免费节点常用自签/无 SAN 证书,跳过才能用);设 `false` 强制校验 |
 
 所有密钥只通过 Render Dashboard 注入(render.yaml 中均为 `sync: false`),运行时写入容器内 `/run/app`,
 不进镜像层、不打日志。未提供订阅时启动会注入一个占位节点保证进程可引导。

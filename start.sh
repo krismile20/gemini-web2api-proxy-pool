@@ -105,6 +105,8 @@ lines = [
     "  probe_target: http://cp.cloudflare.com/generate_204",
     "  password: %s" % yq(mgmt_password),
     "",
+    "skip_cert_verify: %s" % str(env.get("SKIP_CERT_VERIFY", "true").lower() in ("1", "true", "yes")).lower(),
+    "",
     "dns:",
     "  server: 1.1.1.1",
     "  fallback_servers:",
@@ -164,7 +166,7 @@ baseline_settings = {
     "mode": "pool",
     "external_ip": env.get("EXTERNAL_IP", ""),
     "probe_target": env.get("PROBE_TARGET", "http://cp.cloudflare.com/generate_204"),
-    "skip_cert_verify": env.get("SKIP_CERT_VERIFY", "").lower() in ("1", "true", "yes"),
+    "skip_cert_verify": env.get("SKIP_CERT_VERIFY", "true").lower() in ("1", "true", "yes"),
     "listener": {
         "address": proxy_host,
         "port": int(proxy_port or 2323),
