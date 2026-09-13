@@ -2,4 +2,4 @@
 *.local.yaml
 *.local.json
 dist/
-.env
+.envDEPLOY_NOTES.md
