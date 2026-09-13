@@ -36,6 +36,9 @@ gemini-web2api 无 WebUI(纯 API + `/` JSON 状态),无需 WebUI 前缀补丁;ea
 | `EXTRA_NODES` | 可选 | 手工节点(逗号分隔的 URI),**inline 持久保留**,不受订阅刷新删除 |
 | `NODE_FINDER_SOURCES` | 可选 | 自动发现源:逗号分隔的 `owner/repo`,扫描其仓库最新 dated 节点文件(如 `clash20260827.yml`)并自动并入代理池;留空则不自动发现 |
 | `NODE_FINDER_INTERVAL` | 可选 | 自动发现/配置收敛周期,默认 `1h`(支持 `30m`/`2h` 等) |
+| `POOL_FAILURE_THRESHOLD` | 可选 | 节点连续失败多少次加入黑名单,默认 `3`;调低(如 `1`)让坏节点更快被踢出,提升成功率 |
+| `POOL_MODE` | 可选 | 池调度模式 `random`(默认)/ `sequential` |
+| `POOL_BLACKLIST_DURATION` | 可选 | 节点进黑名单时长,默认 `1h` |
 
 所有密钥只通过 Render Dashboard 注入(render.yaml 中均为 `sync: false`),运行时写入容器内 `/run/app`,
 不进镜像层、不打日志。未提供订阅时启动会注入一个占位节点保证进程可引导。
@@ -72,12 +75,13 @@ gemini
 ## 配置持久化模型(免费实例必读)
 
 Render 免费实例 15 分钟无流量会休眠,唤醒时**冷启动新容器**,`/run/app` 被 `start.sh` 重新生成——
-因此在 `/pool/` 面板里做的任何修改(节点、设置、订阅)**都是临时的,实例回收即丢失**。
-本镜像的"持久配置"只来自环境变量:
+因此节点、设置、订阅在实例回收后会回到环境变量定义的状态。本镜像的"持久配置"模型:
 
 - `start.sh` 每次启动把环境变量渲染成基线配置(`config.json` + `easy_proxies.yaml` + `finder.json`);
 - 常驻 sidecar `node_finder`(见下)按 `NODE_FINDER_INTERVAL` **周期性把基线配置收敛回管理 API**:
-  免费实例上即使你/上游把面板配置改乱,也会在下一个周期回到环境变量定义的状态;
+  - **核心设置**(listener / pool / sticky / management / log)回写基线,防止面板把配置改乱;
+  - **订阅采用合并策略**:面板(`/pool/`)里新增的订阅会被 **保留并合并** 进基线+自动发现结果,
+    不会因基线收敛被冲掉(实例回收前一直有效);
 - 手工节点请用 `EXTRA_NODES`(inline 持久),而不是在面板"添加节点";
 - Gemini 认证凭据请用 `GEMINI_COOKIE`/`AUTH_USER`/`XSRF_TOKEN`(env),而不是在容器里手动写文件。
 

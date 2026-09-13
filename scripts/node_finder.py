@@ -192,6 +192,15 @@ def _hash(items):
 
 ## -- Subscription push -------------------------------------------------------
 
+
+def get_current_subscriptions(mgmt_base, token):
+    """Return the subscription list currently active in easy_proxies."""
+    try:
+        data = api_get(mgmt_base, token, "/api/subscription/config")
+        return [s.strip() for s in (data.get("subscriptions") or []) if s.strip()]
+    except Exception as e:  # noqa: BLE001
+        log(f"get current subscriptions failed: {e}")
+        return []
 def push_subscriptions(mgmt_base, token, subs, refresh_interval):
     new_hash = _hash(subs)
     if _STATE.get("sub_hash") == new_hash:
@@ -376,7 +385,12 @@ def cycle():
         if baseline_settings:
             reconcile_core(mgmt_base, token, baseline_settings)
         discovered = discover(sources) if sources else []
-        combined = sorted(set(baseline) | set(discovered))
+        # Merge baseline + auto-discovered + whatever is already active in the
+        # pool (e.g. subscriptions added from the /pool/ WebUI). Union keeps
+        # UI-added subscriptions instead of letting baseline convergence wipe them.
+        current = get_current_subscriptions(mgmt_base, token)
+        ui_added = [s for s in current if s not in set(_CFG.get("_baseline", []))]
+        combined = sorted(set(baseline) | set(discovered) | set(ui_added))
         if combined:
             push_subscriptions(mgmt_base, token, combined, refresh_interval)
         else:
