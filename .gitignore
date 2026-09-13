@@ -1,0 +1,5 @@
+# 本地真实配置/产物,绝不提交
+*.local.yaml
+*.local.json
+dist/
+.env

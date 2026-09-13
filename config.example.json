@@ -1,0 +1,16 @@
+{
+  "port": 8080,
+  "host": "0.0.0.0",
+  "retry_attempts": 3,
+  "retry_delay_sec": 2,
+  "request_timeout_sec": 180,
+  "gemini_bl": "boq_assistant-bard-web-server_20260716.08_p0",
+  "auth_user": null,
+  "xsrf_token": null,
+  "default_model": "gemini-3.6-flash",
+  "api_keys": [],
+  "cookie_file": "/run/app/cookie.txt",
+  "proxy": "http://pool:changeme@127.0.0.1:2323",
+  "log_requests": true,
+  "temporary_chats": false
+}

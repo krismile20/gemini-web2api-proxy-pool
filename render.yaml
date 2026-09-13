@@ -1,0 +1,45 @@
+services:
+  - type: web
+    name: gemini-web2api-proxy-pool
+    runtime: docker
+    plan: free
+    healthCheckPath: /healthz
+    autoDeploy: true
+    dockerfilePath: ./Dockerfile
+    envVars:
+      # 客户端访问 /v1/* 用的密钥,逗号分隔。留空则 gemini-web2api 不做鉴权(匿名)
+      - key: SERVER_KEYS
+        sync: false
+      # 代理池订阅链接,逗号分隔,可含 token
+      - key: PROXY_SUBSCRIPTIONS
+        sync: false
+      # easy_proxies 管理面板 (/pool/) 登录密码,建议必设
+      - key: MGMT_PASSWORD
+        sync: false
+      # Gemini Advanced 账户 cookie(单行:SID=...; HSID=...),写入 /run/app/cookie.txt
+      # 留空则匿名访问(所有模型均可用,Pro 会回落到 Flash)
+      - key: GEMINI_COOKIE
+        sync: false
+      # 可选:账户下标(/u/<index>/ 里的 index)
+      - key: AUTH_USER
+        sync: false
+      # 可选:登录后页面里的 SNlM0e (XSRF) token
+      - key: XSRF_TOKEN
+        sync: false
+      # 自动发现源:用 GitHub API 定期扫描这些仓库的最新 dated 节点文件
+      # (如 clash20260827.yml),自动并入代理池。逗号分隔 owner/repo
+      - key: NODE_FINDER_SOURCES
+        sync: false
+      # 自动发现扫描间隔,默认 1h(支持 30m / 2h / 1h 等)
+      - key: NODE_FINDER_INTERVAL
+        sync: false
+      # 订阅定时刷新间隔,默认 30m
+      - key: SUB_REFRESH_INTERVAL
+        sync: false
+      # 手工节点(逗号分隔的 URI),写入配置并作为 inline 节点持久保留,
+      # 不受订阅刷新删除。免费实例上替代"在 /pool/ 面板添加节点"这种会被回收的编辑
+      - key: EXTRA_NODES
+        sync: false
+      # gemini-web2api 默认模型(默认 gemini-3.6-flash)
+      - key: GEMINI_DEFAULT_MODEL
+        sync: false

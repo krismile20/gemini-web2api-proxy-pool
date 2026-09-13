@@ -1,0 +1,32 @@
+{
+	auto_https off
+	admin off
+}
+
+:{$PORT}
+
+@pool_root path /pool
+redir @pool_root /pool/ 308
+
+handle_path /pool/* {
+	reverse_proxy 127.0.0.1:9091
+}
+
+# gemini-web2api expects literal /v1 and /v1beta prefixed paths
+# (streaming SSE must pass through untouched), so keep them intact.
+handle /v1/* {
+	reverse_proxy 127.0.0.1:8080
+}
+
+handle /v1beta/* {
+	reverse_proxy 127.0.0.1:8080
+}
+
+handle /healthz {
+	respond "ok" 200
+}
+
+handle {
+	root * /srv/portal
+	file_server
+}

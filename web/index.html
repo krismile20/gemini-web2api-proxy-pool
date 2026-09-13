@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gemini Web2API Proxy Pool</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 32px;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: #0d1117; color: #e6edf3; padding: 24px;
+  }
+  h1 { font-size: 1.4rem; font-weight: 600; letter-spacing: .02em; }
+  h1 span { color: #58a6ff; }
+  .cards { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  a.card {
+    display: block; width: 300px; padding: 28px 24px;
+    background: #161b22; border: 1px solid #30363d; border-radius: 12px;
+    text-decoration: none; color: inherit; transition: all .15s ease;
+  }
+  a.card:hover { border-color: #58a6ff; transform: translateY(-3px); }
+  .card .icon { font-size: 2rem; margin-bottom: 12px; }
+  .card h2 { font-size: 1.05rem; margin-bottom: 8px; color: #58a6ff; }
+  .card p { font-size: .85rem; line-height: 1.5; color: #8b949e; }
+  footer { font-size: .75rem; color: #484f58; text-align: center; line-height: 1.6; }
+  code { background: #21262d; padding: 1px 6px; border-radius: 4px; font-size: .85em; }
+</style>
+</head>
+<body>
+<h1>Gemini <span>Web2API</span> Proxy Pool 控制台</h1>
+<div class="cards">
+  <a class="card" href="/v1/chat/completions">
+    <div class="icon">&#129302;</div>
+    <h2>OpenAI 兼容 API</h2>
+    <p>Gemini Web 免费大模型,OpenAI 格式接口。Base URL 填 <code>/v1</code>,支持流式、工具调用、内置联网。</p>
+  </a>
+  <a class="card" href="/pool/">
+    <div class="icon">&#128274;</div>
+    <h2>代理池管理面板</h2>
+    <p>easy_proxies:节点列表与探测、订阅更新、黑名单释放、实时流量与日志。</p>
+  </a>
+</div>
+<footer>
+  API 端点:<code>/v1/chat/completions</code> &nbsp;·&nbsp; 模型:<code>/v1/models</code> &nbsp;·&nbsp; 健康检查:<code>/healthz</code><br>
+  代理池登录密码由部署环境变量 <code>MGMT_PASSWORD</code> 配置。
+</footer>
+</body>
+</html>
