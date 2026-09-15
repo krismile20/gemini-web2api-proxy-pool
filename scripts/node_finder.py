@@ -17,6 +17,7 @@
 #
 # Secrets never live in this process's environment: config (incl. the management
 # password) is read from a JSON file written by start.sh at boot.
+import datetime
 import hashlib
 import json
 import os
@@ -28,13 +29,8 @@ import urllib.request
 
 CONFIG_PATH = os.environ.get("FINDER_CONFIG", "/run/app/finder.json")
 STATE_PATH = os.environ.get("FINDER_STATE", "/run/app/.finder_state")
-API_ROOT = "https://api.github.com"
 RAW_ROOT = "https://raw.githubusercontent.com"
 UA = {"User-Agent": "gemini-web2api-proxy-pool/node-finder"}
-
-# A candidate node file is one whose name embeds an 8-digit date (YYYYMMDD)
-# and ends in a known proxy config extension.
-DATE_FILE_RE = re.compile(r"^(.*?)(\d{8})\.(ya?ml|txt|json)$", re.IGNORECASE)
 
 
 def log(msg):
@@ -48,71 +44,66 @@ def http(req, timeout=20):
         return resp.read().decode("utf-8", "replace"), resp.headers
 
 
-def http_json(url, timeout=20):
-    req = urllib.request.Request(url, headers=dict(UA))
-    body, _ = http(req, timeout)
-    return json.loads(body)
-
-
 ## -- Discovery --------------------------------------------------------------
 
-def default_branch(repo):
-    try:
-        data = http_json(f"{API_ROOT}/repos/{repo}")
-        return data.get("default_branch", "main")
-    except Exception as e:  # noqa: BLE001
-        log(f"default_branch for {repo} failed: {e}; assuming main")
-        return "main"
+# Discovery is deliberately GitHub-API-free: api.github.com is rate-limited
+# (60 req/h/IP anonymous) and Render's shared egress burns through it in
+# seconds (HTTP 403), killing auto-discovery. So we guess dated file URLs and
+# probe raw.githubusercontent.com directly, which has no API rate limit.
+#
+# Source syntax:  owner/repo[:pattern]
+#   - pattern defaults to "clash{date}.yml" (free-nodes/clashfree style),
+#     walking today backwards up to FINDER_LOOKBACK_DAYS days until it finds
+#     a non-empty dated file (upstream generators often leave the newest file
+#     empty/placeholder while re-generating).
+#   - a pattern without "{date}" refers to a fixed file (e.g. "nodes.txt").
+DEFAULT_PATTERN = "clash{date}.yml"
 
 
-def latest_node_files(repo, branch):
-    url = f"{API_ROOT}/repos/{repo}/contents/?ref={branch}"
-    items = http_json(url)
-    dated = []
-    for it in items:
-        name = it.get("name", "")
-        m = DATE_FILE_RE.match(name)
-        if m:
-            dated.append((m.group(2), name))  # (YYYYMMDD, filename)
-    dated.sort(key=lambda x: x[0], reverse=True)
-    return [name for _, name in dated]
+def _candidate_urls(repo, pattern):
+    base = f"{RAW_ROOT}/{repo}/main"
+    if "{date}" in pattern:
+        lookback = int(os.environ.get("FINDER_LOOKBACK_DAYS", "7"))
+        today = datetime.date.today()
+        urls = []
+        for days_ago in range(lookback + 1):
+            d = today - datetime.timedelta(days=days_ago)
+            urls.append(f"{base}/{pattern.format(date=d.strftime('%Y%m%d'))}")
+        return urls
+    return [f"{base}/{pattern}"]
 
 
 def discover(sources):
     found = []
-    for repo in sources:
-        repo = (repo or "").strip()
-        if not repo:
+    for spec in sources:
+        spec = (spec or "").strip()
+        if not spec:
             continue
         try:
-            branch = default_branch(repo)
-            files = latest_node_files(repo, branch)
-            if not files:
-                log(f"no dated node files in {repo}")
-                continue
-            # Walk newest -> oldest until we find a non-empty node file:
-            # the single newest dated file is often placeholder-empty while the
-            # upstream generator is mid-update, so fall back to a recent one.
+            if ":" in spec:
+                repo, _, pattern = spec.partition(":")
+            else:
+                repo, pattern = spec, DEFAULT_PATTERN
+            repo, pattern = repo.strip(), (pattern.strip() or DEFAULT_PATTERN)
             picked = None
-            for name in files:
-                raw = f"{RAW_ROOT}/{repo}/{branch}/{name}"
+            for url in _candidate_urls(repo, pattern):
                 try:
                     body, _ = http(
-                        urllib.request.Request(raw, headers=dict(UA)), timeout=25
+                        urllib.request.Request(url, headers=dict(UA)), timeout=25
                     )
                     if body.strip():
-                        picked = raw
-                        log(f"discovered {raw}")
+                        picked = url
+                        log(f"discovered {url}")
                         break
-                    log(f"{raw} is empty, trying older file");
+                    log(f"{url} empty; probing older candidate")
                 except Exception as e:  # noqa: BLE001
-                    log(f"verify {raw} failed: {e}; trying older file")
+                    log(f"probe {url} failed: {e}; probing older candidate")
             if picked is None:
-                log(f"no non-empty node file in {repo}")
+                log(f"no non-empty node file for {spec}")
                 continue
             found.append(picked)
         except Exception as e:  # noqa: BLE001
-            log(f"discover {repo} error: {e}")
+            log(f"discover {spec} error: {e}")
     return found
 
 

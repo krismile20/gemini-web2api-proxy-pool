@@ -34,7 +34,7 @@ gemini-web2api 无 WebUI(纯 API + `/` JSON 状态),无需 WebUI 前缀补丁;ea
 | `GEMINI_DEFAULT_MODEL` | 可选 | 默认模型,默认 `gemini-3.6-flash` |
 | `SUB_REFRESH_INTERVAL` | 可选 | 订阅定时刷新间隔,默认 `30m` |
 | `EXTRA_NODES` | 可选 | 手工节点(逗号分隔的 URI),**inline 持久保留**,不受订阅刷新删除 |
-| `NODE_FINDER_SOURCES` | 可选 | 自动发现源:逗号分隔的 `owner/repo`,扫描其仓库最新 dated 节点文件(如 `clash20260827.yml`)并自动并入代理池;留空则不自动发现 |
+| `NODE_FINDER_SOURCES` | 可选 | 自动发现源:逗号分隔的 `owner/repo[:pattern]`,直接探测 raw.githubusercontent.com 上带日期的节点文件(默认 `clash{date}.yml`,回看 7 天取最近非空),自动并入代理池。⚠ 不走 GitHub API(匿名限流,免去被 403 拖垮);留空则不自动发现 |
 | `NODE_FINDER_INTERVAL` | 可选 | 自动发现/配置收敛周期,默认 `1h`(支持 `30m`/`2h` 等) |
 | `POOL_FAILURE_THRESHOLD` | 可选 | 节点连续失败多少次加入黑名单,默认 `3`;调低(如 `1`)让坏节点更快被踢出,提升成功率 |
 | `POOL_MODE` | 可选 | 池调度模式 `random`(默认)/ `sequential` |
@@ -112,6 +112,6 @@ Render 免费实例 15 分钟无流量会休眠,唤醒时**冷启动新容器**,
 ├── web/index.html      门户页
 ├── config.example.json 镜像内兜底 gemini 配置(启动即会被 start.sh 覆盖)
 ├── scripts/
-│   └── node_finder.py  自动发现器 + 配置收敛:GitHub API 扫最新 dated 节点订阅 → 经 Management API 热载入池
+│   └── node_finder.py  自动发现器 + 配置收敛:纯 raw.githubusercontent 按日期探测节点订阅(免 GitHub API 限流)→ 经 Management API 热载入池
 └── render.yaml         Render Blueprint
 ```
